@@ -289,6 +289,9 @@ fork(void)
   }
   np->sz = p->sz;
 
+  // Task 2 additions Process mask for trace
+  np->mask_for_trace = p->mask_for_trace; 
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -653,4 +656,23 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// assignment 1 Task 2 , this is where "the magic happend" (this is the function of trace)
+// we copyed the struction of "kill" and build on it
+int 
+trace(int mask, int pid)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      p->mask_for_trace = mask; // Here we update the trace
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  return -1;
 }

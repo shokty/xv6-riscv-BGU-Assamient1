@@ -95,3 +95,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+// assignment 1 Task 2 , this is where "the magic happend" (this is the function of trace)
+// we copyed the struction of "kill" and build on it
+uint64
+sys_trace(void)
+{
+    int mask;
+    int pid;
+    return (argint(1 , &pid) < 0) | (argint(0, &mask) < 0 ) ? -1 : trace(mask , pid);
+}
