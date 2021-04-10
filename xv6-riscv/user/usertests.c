@@ -923,6 +923,23 @@ reparent(char *s)
   exit(0);
 }
 
+void test_trace() {
+  char *str = 0;
+  trace((1 << SYS_getpid) | (1 << SYS_fork) | (1 << SYS_sbrk), getpid());
+
+  if(fork() == 0){
+    trace((1 << SYS_sbrk), getpid());
+    fprintf(2, "child process id: %d\n", getpid());
+    str = malloc(1024);
+  } else {
+    wait(0);
+    fprintf(2, "parent process id: %d\n", getpid());
+    str = malloc(1024);
+    memcpy(str, "hello", 6);
+  }
+}
+
+
 // what if two children exit() at the same time?
 void
 twochildren(char *s)
@@ -2825,7 +2842,8 @@ main(int argc, char *argv[])
     {dirfile, "dirfile"},
     {iref, "iref"},
     {forktest, "forktest"},
-    {bigdir, "bigdir"}, // slow
+    {bigdir, "bigdir"}, 
+    {test_trace , "tracetest"}, // slow
     { 0, 0},
   };
 
@@ -2876,3 +2894,5 @@ main(int argc, char *argv[])
     exit(0);
   }
 }
+
+

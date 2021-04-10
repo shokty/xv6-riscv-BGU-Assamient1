@@ -170,11 +170,11 @@ syscall(void)
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     if (trace_is_on){
       if (num == SYS_fork)
-        printf("syscall %s NULL -> %d\n", syscalls_strings[num], syscalls[num]()); // If fork
+        printf("%d: syscall %s NULL -> %d\n",p->pid, syscalls_strings[num], syscalls[num]()); // If fork
       else if (num == SYS_kill || num == SYS_sbrk)
-        printf("syscall %s %d -> %d\n", syscalls_strings[num],  p->trapframe->a0, syscalls[num]()); // kill or skrb
+        printf("%d: syscall %s %d -> %d\n", p->pid, syscalls_strings[num],  p->trapframe->a0, syscalls[num]()); // kill or skrb
       else
-        printf("syscall %s -> %d\n", syscalls_strings[num], syscalls[num]()); 
+        printf("%d: syscall %s -> %d\n",p->pid, syscalls_strings[num], syscalls[num]()); 
     }
     p->trapframe->a0 = syscalls[num]();
   } else {
