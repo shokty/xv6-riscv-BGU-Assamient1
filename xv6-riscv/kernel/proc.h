@@ -18,6 +18,24 @@ struct context {
   uint64 s11;
 };
 
+
+// Task 3 
+// • ctime – process creation time.
+// • ttime – process termination time.
+// • stime – the total time the process spent in the SLEEPING state.
+// • retime – the total time the process spent in the RUNNABLE state.
+// • rutime – the total time the process spent in the RUNNING state.
+// • average_bursttime- approximate estimated burst time (as specified in task 4.3)
+struct perf
+{
+  int ctime;             
+  int ttime;             
+  int stime;                   
+  int retime;   
+  int rutime;         
+  int average_bursttime; 
+};
+
 // Per-CPU state.
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
@@ -106,4 +124,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // Task 3
+  struct perf performance;     // Task 3 , hold all of the times and stuff..
 };

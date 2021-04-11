@@ -102,5 +102,14 @@ sys_trace(void)
 {
     int mask;
     int pid;
-    return (argint(1 , &pid) < 0) | (argint(0, &mask) < 0 ) ? -1 : trace(mask , pid);
+    return ((argint(1 , &pid) < 0) | (argint(0, &mask) < 0 )) ? -1 
+                                                              : trace(mask , pid);
+}
+uint64
+sys_wait_stat(void)
+{
+  int status;
+  struct perf *performance;
+  return ((argaddr(1, (void *)&performance) < 0) | (argaddr(0,(void *)&status) < 0)) ? -1
+                                                                                     : wait_stat(&status, performance);
 }

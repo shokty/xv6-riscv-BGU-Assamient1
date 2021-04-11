@@ -164,6 +164,7 @@ clockintr()
 {
   acquire(&tickslock);
   ticks++;
+  tick_performance_update(); // Task 3 , we did it here becouse in the pdf the order of the locks is proc -> ticks!
   wakeup(&ticks);
   release(&tickslock);
 }

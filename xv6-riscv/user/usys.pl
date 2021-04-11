@@ -36,4 +36,5 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
-entry("trace"); # assignment 1 Task 2 addisions
+entry("trace");      # assignment 1 Task 2 addisions
+entry("wait_stat");  # assignment 1 Task 3 addisions

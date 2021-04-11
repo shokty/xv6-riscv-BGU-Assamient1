@@ -104,7 +104,9 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
-extern uint64 sys_trace(void); // Task 2 additions
+extern uint64 sys_trace(void);     // Task 2 additions
+extern uint64 sys_wait_stat(void); // Task 3 additions
+
 
 
 static char *syscalls_strings[] = {       // Task 2 additions so we know the names
@@ -131,6 +133,7 @@ static char *syscalls_strings[] = {       // Task 2 additions so we know the nam
         "mkdir",
         "close",
         "trace",
+        "wait_stat",
 };
 
 static uint64 (*syscalls[])(void) = {
@@ -155,7 +158,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_trace]   sys_trace,    // Task 2 additions
+[SYS_trace]   sys_trace,          // Task 2 additions
+[SYS_wait_stat] sys_wait_stat,    // Task 3 additions
 };
 
 void

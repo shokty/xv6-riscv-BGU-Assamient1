@@ -140,8 +140,15 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  // Task 3 init performance
+  p->performance.ctime = ticks;
+  p->performance.ttime = 0;
+  p->performance.stime = 0;
+  p->performance.retime = 0;
+  p->performance.rutime = 0;
+  p->performance.average_bursttime = 0;
 
-  return p;
+  return p; // return the new procces
 }
 
 // free a proc structure and the data hanging from it,
@@ -370,7 +377,7 @@ exit(int status)
   wakeup(p->parent);
   
   acquire(&p->lock);
-
+  p->performance.ttime = ticks; // Task 3 , here we update the tttime (terminated time)
   p->xstate = status;
   p->state = ZOMBIE;
 
@@ -676,3 +683,79 @@ trace(int mask, int pid)
   }
   return -1;
 }
+void
+tick_performance_update(void){
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    enum procstate curr_state = p->state;        // Process state
+    if (curr_state == SLEEPING){
+      p->performance.stime++;  // stime – the total time the process spent in the SLEEPING state
+    }
+    else if (curr_state == RUNNABLE){
+      p->performance.retime++; //retime – the total time the process spent in the RUNNABLE state.
+    }
+    else if (curr_state == RUNNING){
+      p->performance.rutime++; // rutime – the total time the process spent in the RUNNING state.
+    // p->burst++; // @TODO: return here
+    }
+    release(&p->lock);
+  }
+}
+
+// Task 3 
+// we coppyed most of the code from wait rgith obove here
+int 
+wait_stat(int* status, struct perf * performance)
+{
+  struct proc *np;
+  int havekids, pid;
+  struct proc *p = myproc();
+
+  acquire(&wait_lock);
+
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(np = proc; np < &proc[NPROC]; np++){
+      if(np->parent == p){
+        // make sure the child isn't still in exit() or swtch().
+        acquire(&np->lock);
+
+        havekids = 1;
+        if(np->state == ZOMBIE){
+          // Found one.
+          pid = np->pid;
+          if(
+          (status != 0 && copyout(p->pagetable, *status, (char *)&np->xstate, sizeof(np->xstate)) < 0) |
+          (copyout(p->pagetable, (uint64)performance, (char *)&np->performance.ctime, sizeof(np->performance.ctime)) < 0 ) |
+          (copyout(p->pagetable, (uint64)performance + sizeof(int), (char *)&np->performance.ttime, sizeof(np->performance.ttime)) < 0 ) |
+          (copyout(p->pagetable, (uint64)performance + 2 * sizeof(int), (char *)&np->performance.stime, sizeof(np->performance.stime)) < 0 ) |
+          (copyout(p->pagetable, (uint64)performance + 3 * sizeof(int), (char *)&np->performance.retime, sizeof(np->performance.retime)) < 0) |
+          (copyout(p->pagetable, (uint64)performance + 4 * sizeof(int), (char *)&np->performance.rutime, sizeof(np->performance.rutime)) < 0 ) |
+          (copyout(p->pagetable, (uint64)performance + 5 * sizeof(int), (char *)&np->performance.average_bursttime, sizeof(np->performance.average_bursttime)) < 0) 
+          )
+          {
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          freeproc(np);
+          release(&np->lock);
+          release(&wait_lock);
+          return pid;
+        }
+        release(&np->lock);
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || p->killed){
+      release(&wait_lock);
+      return -1;
+    }
+    // Wait for a child to exit.
+    sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
+}
+
