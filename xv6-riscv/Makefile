@@ -30,6 +30,11 @@ OBJS = \
   $K/plic.o \
   $K/virtio_disk.o
 
+#assignment 1 Task 4.1 
+ifndef SCHEDFLAG 
+SCHEDFLAG := DEFAULT
+endif
+
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX = 
@@ -62,6 +67,7 @@ CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += -D $(SCHEDFLAG) #assignment 1 Task 4.1 
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
 ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)

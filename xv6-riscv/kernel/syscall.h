@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_trace  22       // Task 2 additions
 #define SYS_wait_stat 23    // Task 3 additions
+#define SYS_set_priority 24 // Task 4.4

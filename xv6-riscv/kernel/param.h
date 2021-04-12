@@ -1,5 +1,6 @@
 #define NPROC        64  // maximum number of processes
 #define NCPU          8  // maximum number of CPUs
+#define QUANTUM 5        // assignment 1 Task 4
 #define NOFILE       16  // open files per process
 #define NFILE       100  // open files per system
 #define NINODE       50  // maximum number of active i-nodes
@@ -9,5 +10,6 @@
 #define MAXOPBLOCKS  10  // max # of blocks any FS op writes
 #define LOGSIZE      (MAXOPBLOCKS*3)  // max data blocks in on-disk log
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
+#define ALPHA        50    // Task 4
 #define FSSIZE       1000  // size of file system in blocks
 #define MAXPATH      128   // maximum file path name

@@ -106,6 +106,7 @@ extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_trace(void);     // Task 2 additions
 extern uint64 sys_wait_stat(void); // Task 3 additions
+extern uint64 sys_set_priority(void);  //task 4.4
 
 
 
@@ -134,6 +135,7 @@ static char *syscalls_strings[] = {       // Task 2 additions so we know the nam
         "close",
         "trace",
         "wait_stat",
+        "set_priority"
 };
 
 static uint64 (*syscalls[])(void) = {
@@ -160,6 +162,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,          // Task 2 additions
 [SYS_wait_stat] sys_wait_stat,    // Task 3 additions
+[SYS_set_priority] sys_set_priority, // Task 4.4
 };
 
 void

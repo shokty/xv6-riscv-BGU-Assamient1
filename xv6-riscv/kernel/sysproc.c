@@ -113,3 +113,10 @@ sys_wait_stat(void)
   return ((argaddr(1, (void *)&performance) < 0) | (argaddr(0,(void *)&status) < 0)) ? -1
                                                                                      : wait_stat(&status, performance);
 }
+
+uint64
+sys_set_priority(void)
+{
+  int factor;
+  return (argint(0, &factor) < 0) ? -1 : set_priority(factor);
+}

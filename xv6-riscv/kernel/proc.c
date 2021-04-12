@@ -15,6 +15,9 @@ struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
 
+int nextFCFS = 1;
+struct spinlock FCFS_lock;
+
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
@@ -97,6 +100,19 @@ allocpid() {
   return pid;
 }
 
+
+int
+allocFCFS() {
+  int id;
+  
+  acquire(&FCFS_lock);
+  id = nextFCFS;
+  nextFCFS = nextFCFS + 1;
+  release(&FCFS_lock);
+
+  return id;
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -119,6 +135,9 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->curr_burst = 0;
+  p->performance.average_bursttime = QUANTUM * 100;
+  p->Decay_factor = 5;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -146,7 +165,9 @@ found:
   p->performance.stime = 0;
   p->performance.retime = 0;
   p->performance.rutime = 0;
-  p->performance.average_bursttime = 0;
+  p->performance.average_bursttime = 100 * QUANTUM; //task 4.3
+  p->curr_burst = 0;
+  p->Decay_factor = 5;
 
   return p; // return the new procces
 }
@@ -170,6 +191,7 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->Decay_factor = 0;
   p->state = UNUSED;
 }
 
@@ -246,11 +268,15 @@ userinit(void)
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
 
+  #ifdef SRT
+  p->performance.average_bursttime = 100 * QUANTUM; //task 4.3
+  #endif
+
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
-
+  p->fcfs = allocFCFS();
   release(&p->lock);
 }
 
@@ -323,6 +349,13 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+  np->fcfs = allocFCFS();
+  np->Decay_factor = p->Decay_factor;
+  #ifdef FCFS
+  #endif
+  #ifdef SRT
+  np->performance.average_bursttime = 100 * QUANTUM; //task 4.3
+  #endif
   release(&np->lock);
 
   return pid;
@@ -444,27 +477,120 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void
-scheduler(void)
+
+void 
+FCFS_scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+  c->proc = 0;
+  for (;;)
+  {
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+    struct proc *p_min = 0;
+    int curr_min = __INT_MAX__;
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE && curr_min > p->fcfs)
+      {
+          if (p_min != 0){
+            release(&p_min->lock);
+          }
+          curr_min = p->fcfs;
+          p_min = p;
+      }
+      else
+        release(&p->lock);
+    }
+  // Switch to chosen process.  It is the process's job
+    // to release its lock and then reacquire it
+    // before jumping back to us.
+    if (p_min != 0)
+    {
+      // printf("ratio = %d\n", get_runtime_ratio(p_min));
+      p_min->state = RUNNING;
+      c->proc = p_min;
+      p_min->curr_burst = 0;
+      swtch(&c->context, &p_min->context);
+      p_min->performance.average_bursttime = (ALPHA * p->curr_burst) + ((100 - ALPHA) * p->performance.average_bursttime) / 100;
+      // alweays come back to here
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      release(&p_min->lock);
+    }
+  }
+}
+
+
+void 
+CFSD_scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  for (;;)
+  {
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+    struct proc *p_min = 0;
+    int curr_min = __INT_MAX__;
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE)
+      {
+          int compute_factor = (p->performance.rutime * p->Decay_factor) / ((p->performance.rutime) + (p->performance.stime));
+          if (compute_factor < curr_min){
+            if (p_min != 0){
+              release(&p_min->lock);
+            }
+            curr_min = p->fcfs;
+            p_min = p;
+          }
+      }
+      else
+        release(&p->lock);
+    }
+  // Switch to chosen process.  It is the process's job
+    // to release its lock and then reacquire it
+    // before jumping back to us.
+    if (p_min != 0)
+    {
+      // printf("ratio = %d\n", get_runtime_ratio(p_min));
+      p_min->state = RUNNING;
+      c->proc = p_min;
+      swtch(&c->context, &p_min->context);
+      // alweays come back to here
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      release(&p_min->lock);
+    }
+  }
+}
+
+void 
+DEFAULT_scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
+        printf("DEFAULT_scheduler is running with\n");
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
-
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
@@ -472,6 +598,69 @@ scheduler(void)
       release(&p->lock);
     }
   }
+}
+
+
+void 
+SRT_scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  for (;;)
+  {
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+    struct proc *p_min = 0;
+    int curr_min = __INT_MAX__;
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE && curr_min > p->performance.average_bursttime)
+      {
+          if (p_min != 0){
+            release(&p_min->lock);
+          }
+          curr_min = p->performance.average_bursttime;
+          p_min = p;
+      }
+      else
+        release(&p->lock);
+    }
+  // Switch to chosen process.  It is the process's job
+    // to release its lock and then reacquire it
+    // before jumping back to us.
+    if (p_min != 0)
+    {
+      // printf("ratio = %d\n", get_runtime_ratio(p_min));
+      p_min->state = RUNNING;
+      c->proc = p_min;
+      p_min->curr_burst = 0;
+      swtch(&c->context, &p_min->context);
+      p_min->performance.average_bursttime = (ALPHA * p->curr_burst) + ((100 - ALPHA) * p->performance.average_bursttime) / 100;
+      // alweays come back to here
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      release(&p_min->lock);
+    }
+  }
+}
+void
+scheduler(void)
+{
+  #ifdef DEFAULT
+  DEFAULT_scheduler();
+  #endif // end of defult
+  #ifdef FCFS
+  FCFS_scheduler();
+  #endif //end of fcfs
+  #ifdef SRT
+  SRT_scheduler();
+  #endif //end of fcfs
+  #ifdef CFSD
+  CFSD_scheduler();
+  #endif //end of fcfs
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -508,6 +697,7 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  p->fcfs = allocFCFS();
   sched();
   release(&p->lock);
 }
@@ -576,6 +766,7 @@ wakeup(void *chan)
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
         p->state = RUNNABLE;
+        p->fcfs = allocFCFS();
       }
       release(&p->lock);
     }
@@ -597,6 +788,7 @@ kill(int pid)
       if(p->state == SLEEPING){
         // Wake process from sleep().
         p->state = RUNNABLE;
+        p->fcfs = allocFCFS();
       }
       release(&p->lock);
       return 0;
@@ -697,10 +889,38 @@ tick_performance_update(void){
     }
     else if (curr_state == RUNNING){
       p->performance.rutime++; // rutime – the total time the process spent in the RUNNING state.
-    // p->burst++; // @TODO: return here
+      p->curr_burst++; // Task 4.3
     }
     release(&p->lock);
   }
+}
+
+// Task 4.4
+
+int set_priority(int priority){
+  struct proc *p = myproc();
+  switch (priority)
+  {
+  case 1:
+    p->Decay_factor = 1;
+    break;
+  case 2:
+    p->Decay_factor = 3;
+    break;
+  case 3:
+    p->Decay_factor = 5;
+    break;
+  case 4:
+    p->Decay_factor = 7;
+    break;
+  case 5:
+    p->Decay_factor = 25;
+    break;
+  default:
+    return -1;
+    break;
+  }
+  return 0;
 }
 
 // Task 3 

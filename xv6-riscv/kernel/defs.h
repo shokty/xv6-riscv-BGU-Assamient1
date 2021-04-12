@@ -95,6 +95,10 @@ struct cpu*     mycpu(void);
 struct cpu*     getmycpu(void);
 struct proc*    myproc();
 void            procinit(void);
+void            DEFAULT_scheduler(void)  __attribute__((noreturn)); //Task 4.1
+void            FCFS_scheduler(void) __attribute__((noreturn)); //Task 4.2;X
+void            SRT_scheduler(void) __attribute__((noreturn)); //Task 4.3;
+void            CFSD_scheduler(void) __attribute__((noreturn)); //Task 4.4;
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            setproc(struct proc*);
@@ -108,6 +112,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             trace(int mask, int pid);                            // Task 2 additions
 int             wait_stat(int* status, struct perf * performance);   // Task 3 additions (As described on the worksheet)
+int             set_priority(int priority);                          // Task 4.3
 void            tick_performance_update(void);
 // swtch.S
 void            swtch(struct context*, struct context*);

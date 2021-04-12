@@ -77,9 +77,11 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
+  #ifndef FCFS
   if(which_dev == 2)
-    yield();
-
+    if (ticks % QUANTUM == 0)
+      yield();
+  #endif
   usertrapret();
 }
 
@@ -148,11 +150,13 @@ kerneltrap()
     printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
     panic("kerneltrap");
   }
-
+  #ifndef FCFS
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
-    yield();
-
+  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING){
+    if (ticks % QUANTUM == 0)
+      yield();
+  }
+  #endif
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
   w_sepc(sepc);

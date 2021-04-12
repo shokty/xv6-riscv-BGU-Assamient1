@@ -111,7 +111,9 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
   int mask_for_trace;          // Task 2 additions Process mask
-
+  int curr_burst;              // Task 4
+  int fcfs;                    //TASK 4.2
+  int Decay_factor;            // Task 4.4
   // proc_tree_lock must be held when using this:
   struct proc *parent;         // Parent process
 

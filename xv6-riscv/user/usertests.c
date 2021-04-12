@@ -927,25 +927,6 @@ void run_for(int ticks) {
   while (uptime() - t0 < ticks) { }
 }
 
-void test_wait_stat() {
-  int status;
-  int ccount = 20;
-
-  sleep(10);
-  for (int i = 0; i < ccount; i++) {
-    if (fork() == 0) {
-      run_for(2);
-      exit(0);
-    }
-  }
-  for (int i = 0; i < ccount; i++) {
-    wait(&status);
-  }
-  run_for(2);
-  printf("child (%d) exiting\n", getpid());
-  exit(7);
-} //boaz tests
-
 void test_trace() {
   char *str = 0;
   trace((1 << SYS_getpid) | (1 << SYS_fork) | (1 << SYS_sbrk), getpid());
@@ -2867,7 +2848,6 @@ main(int argc, char *argv[])
     {forktest, "forktest"},
     {bigdir, "bigdir"}, 
     {test_trace , "tracetest"}, // slow
-    {test_wait_stat,"waittest"},
     { 0, 0},
   };
 

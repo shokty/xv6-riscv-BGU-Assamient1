@@ -40,7 +40,8 @@ int main(int argc , char** argv) {
         performance.ttime,
         performance.stime,
         performance.retime,
-        performance.rutime);
+        performance.rutime
+        );
     }
     exit(0);
 }
