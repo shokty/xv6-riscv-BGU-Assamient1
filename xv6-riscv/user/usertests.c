@@ -2847,7 +2847,7 @@ main(int argc, char *argv[])
     {iref, "iref"},
     {forktest, "forktest"},
     {bigdir, "bigdir"}, 
-    {test_trace , "tracetest"}, // slow
+    //{test_trace , "tracetest"}, // slow
     { 0, 0},
   };
 

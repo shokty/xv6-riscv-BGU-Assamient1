@@ -83,11 +83,7 @@ runcmd(struct cmd *cmd)
     int path_file = open("/path", O_RDONLY | O_CREATE);
     if (ecmd->argv[0][0] != '/') {
       while (read(path_file, ch, 1) > 0){
-        if (ch[0] != ':'){
-          curr_path[path_index] = ch[0];
-          path_index ++;
-        }
-        else {
+        if (ch[0] == ':'){
           while (ecmd->argv[0][commend_index] > 0) // copying the commend Line
           {
             curr_path[path_index] = ecmd->argv[0][commend_index];
@@ -98,6 +94,10 @@ runcmd(struct cmd *cmd)
           exec(curr_path, ecmd->argv);
           path_index = 0;
           commend_index = 0;
+        }
+        else {
+          curr_path[path_index] = ch[0];
+          path_index ++;
         }
       }
     }
